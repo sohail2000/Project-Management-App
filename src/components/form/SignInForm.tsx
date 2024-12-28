@@ -13,28 +13,58 @@ import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import Link from 'next/link';
-import GoogleSignInButton from '../GoogleSignInButton';
+import { signIn } from 'next-auth/react';
+// import { useToast } from '~/hooks/use-toast';
 
 const FormSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email'),
+  username: z.string().min(1, 'Username is required').min(3, 'Username must be atleast 3 characters'),
   password: z
     .string()
     .min(1, 'Password is required')
-    .min(8, 'Password must have than 8 characters'),
+    .min(6, 'Password must be atleast 6 characters'),
 });
 
 const SignInForm = () => {
+  // const { toast } = useToast();
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
     },
   });
 
-  const onSubmit = (values: z.infer<typeof FormSchema>) => {
-    console.log(values);
+  const { isSubmitting } = form.formState;
+
+  const onSubmit = async (values: z.infer<typeof FormSchema>) => {
+    try {
+
+      const signInResponse = await signIn('credentials', {
+        username: values.username,
+        password: values.password,
+        redirect: true,
+        callbackUrl: '/home',
+      });
+
+      // if (signInResponse?.ok) {
+      //   // window.location.href = '/home';
+      // } else {
+      //   toast({
+      //     title: "Sign In Failed",
+      //     description: "Failed to sign in. Please check your credentials.",
+      //     variant: "destructive",
+      //     duration: 3000,
+      //   });
+      // }
+    } catch (error) {
+      // toast({
+      //   title: "Sign In Error",
+      //   description: "Something went wrong. Please try again.",
+      //   variant: "destructive",
+      //   duration: 3000,
+      // });
+    }
   };
 
   return (
@@ -43,12 +73,16 @@ const SignInForm = () => {
         <div className='space-y-2'>
           <FormField
             control={form.control}
-            name='email'
+            name='username'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Username</FormLabel>
                 <FormControl>
-                  <Input placeholder='mail@example.com' {...field} />
+                  <Input
+                    placeholder='Gavin Belson'
+                    {...field}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -65,6 +99,7 @@ const SignInForm = () => {
                     type='password'
                     placeholder='Enter your password'
                     {...field}
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -72,20 +107,14 @@ const SignInForm = () => {
             )}
           />
         </div>
-        <Button className='w-full mt-6' type='submit'>
-          Sign in
+        <Button
+          className='w-full mt-6'
+          type='submit'
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
-      <div className='mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-stone-400 after:ml-4 after:block after:h-px after:flex-grow after:bg-stone-400'>
-        or
-      </div>
-      <GoogleSignInButton>Sign in with Google</GoogleSignInButton>
-      <p className='text-center text-sm text-gray-600 mt-2'>
-        If you don&apos;t have an account, please&nbsp;
-        <Link className='text-blue-500 hover:underline' href='/sign-up'>
-          Sign up
-        </Link>
-      </p>
     </Form>
   );
 };

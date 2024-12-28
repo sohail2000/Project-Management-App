@@ -6,98 +6,95 @@ import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { api } from "~/utils/api";
-import { Task, TaskPriority, TaskStatus } from "@prisma/client";
-import { PriorityFilter, SortBy, SortOrder, StatusFilter } from "~/types/types";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
-
+import { TaskStatus } from "@prisma/client";
 import { Badge } from "~/components/ui/badge"
+import { getAllTaskInputType } from "~/schemas/schemas";
+import LoadingTask from "./LoadingTask";
 
 
 
 const Tasklist = () => {
   const { toast } = useToast();
-  const { data: tasks, isLoading: taskLoading, error: taskError } = api.task.getAllTask.useQuery();
-  const [sortOrder, setSortOrder] = useState<SortOrder>("ASC");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("ALL");
-  const [sortBy, setSortBy] = useState<SortBy>("none");
+  const utils = api.useUtils();
 
-  if (taskLoading) return <div>Loading tasks...🚚 🚚</div>
-  if (taskError) return <div>{`Error Loading Tasks. Details: ${taskError}`}</div>
-
-  const filteredTasks = (tasks ?? []).filter(
-    (task) =>
-      (statusFilter === "ALL" || task.status === statusFilter) &&
-      (priorityFilter === "ALL" || task.priority === priorityFilter)
-  );
-
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (sortBy === "title")
-      return sortOrder === "ASC"
-        ? a.title.localeCompare(b.title)
-        : b.title.localeCompare(a.title);
-
-    if (sortBy === "priority") {
-      const priorityOrder = { LOW: 0, MEDIUM: 1, HIGH: 2 };
-      return sortOrder === "ASC"
-        ? priorityOrder[a.priority] - priorityOrder[b.priority]
-        : priorityOrder[b.priority] - priorityOrder[a.priority];
-    }
-
-    if (sortBy === "dueDate") {
-      if (!a.dueDate) return sortOrder === "ASC" ? 1 : -1;
-      if (!b.dueDate) return sortOrder === "ASC" ? -1 : 1;
-
-      return sortOrder === "ASC"
-        ? a.dueDate.getTime() - b.dueDate.getTime()
-        : b.dueDate.getTime() - a.dueDate.getTime();
-    }
-
-    return 0;
+  const [filters, setFilters] = useState<getAllTaskInputType>({
+    status: "ALL",
+    priority: "ALL",
+    sortBy: "none",
+    sortOrder: "ASC",
   });
+
+  const updateFilters = (key: keyof typeof filters, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const { data: tasks, isLoading: taskLoading, error: taskError } = api.task.getAllTask.useQuery(filters);
+
+  const changeTaskStatus = api.task.changeTaskStatus.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Task status updated successfully",
+        variant: "default",
+        className: "bg-green-400 text-black",
+        duration: 2000,
+      });
+      utils.task.getAllTask.invalidate();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating task status",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
+    },
+  });
+
+  if (taskLoading) return <LoadingTask />
+
+  if (taskError) return <div>{`Error feteching tasks data. Details: ${taskError}`}</div>
 
   return (
     <div>
+
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-4 justify-start">
+        {/* status filter */}
         <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as TaskStatus | "ALL")}
+          value={filters.status}
+          onValueChange={(value) => updateFilters("status", value)}
         >
           <SelectTrigger className="w-fit px-4 bg-background dark:bg-secondary">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="To Do">To Do</SelectItem>
-            <SelectItem value="In Progress">In Progress</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
+            <SelectItem value="TODO">To Do</SelectItem>
+            <SelectItem value="INPROGRESS">In Progress</SelectItem>
+            <SelectItem value="COMPLETED">Completed</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* priority filter */}
         <Select
-          value={priorityFilter}
-          onValueChange={(value) => setPriorityFilter(value as TaskPriority | "ALL")}
+          value={filters.priority}
+          onValueChange={(value) => updateFilters("priority", value)}
         >
           <SelectTrigger className="w-fit px-4 bg-background dark:bg-secondary">
             <SelectValue placeholder="Filter by priority" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Priorities</SelectItem>
-            <SelectItem value="Low">Low</SelectItem>
-            <SelectItem value="Medium">Medium</SelectItem>
-            <SelectItem value="High">High</SelectItem>
+            <SelectItem value="LOW">Low</SelectItem>
+            <SelectItem value="MEDIUM">Medium</SelectItem>
+            <SelectItem value="HIGH">High</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* sortBy filter */}
         <Select
-          value={sortBy}
-          onValueChange={(value) => setSortBy(value as SortBy)}
+          value={filters.sortBy}
+          onValueChange={(value) => updateFilters("sortBy", value)}
         >
           <SelectTrigger className="w-fit px-4 bg-background dark:bg-secondary">
             <SelectValue placeholder="Sort by" />
@@ -106,22 +103,44 @@ const Tasklist = () => {
             <SelectItem value="none">No Sorting</SelectItem>
             <SelectItem value="title">Title</SelectItem>
             <SelectItem value="priority">Priority</SelectItem>
-            <SelectItem value="deadline">Due Date</SelectItem>
+            <SelectItem value="dueDate">Due Date</SelectItem>
           </SelectContent>
         </Select>
-        {sortBy !== "none" && (
+
+        {/* change sorting order */}
+        {filters.sortBy !== "none" && (
           <Button
             variant="outline"
-            onClick={() => setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC")}
+            onClick={() => updateFilters("sortOrder", filters.sortOrder === "ASC" ? "DESC" : "ASC")}
           >
-            {sortOrder === "ASC" ? "Ascending" : "Descending"}
+            {filters.sortOrder === "ASC" ? "Ascending" : "Descending"}
           </Button>
         )}
+
+        {/* clear filter button */}
+        {JSON.stringify(filters) !== JSON.stringify({
+          status: "ALL",
+          priority: "ALL",
+          sortBy: "none",
+          sortOrder: "ASC"
+        }) && (
+            <Button
+              variant="outline"
+              onClick={() => setFilters({
+                status: "ALL",
+                priority: "ALL",
+                sortBy: "none",
+                sortOrder: "ASC"
+              })}
+            >
+              Clear Filters
+            </Button>
+          )}
       </div>
 
       {/* Tasks */}
       <div className="py-4 space-y-2">
-        {sortedTasks.length == 0 ? (
+        {tasks.length == 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 mt-6">
             No tasks found
           </div>
@@ -138,17 +157,17 @@ const Tasklist = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedTasks.map((task) => (
+              {tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell className="space-y-2 text-nowrap w-1/2 capitalize">
-                    <div>
+                    <>
                       <h3 className="font-semibold text-base">{task.title}</h3>
                       {task.description && (
-                        <p className="text-xs md:text-s text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs md:text-s text-gray-500 dark:text-gray-400 mt-1 max-w-[100ch] overflow-hidden overflow-ellipsis whitespace-normal">
                           {task.description}
                         </p>
                       )}
-                    </div>
+                    </>
                   </TableCell>
                   <TableCell className={`text-nowrap ${!task.dueDate && "text-stone-500"}`}>
                     {task.dueDate ? format(task.dueDate, "MMM d, yyyy") : "No Due Date"}
@@ -158,13 +177,8 @@ const Tasklist = () => {
                     <Select
                       value={task.status}
                       onValueChange={async (value) => {
-                        console.log(task.title, "onChangeTriggered- newvalue -", value);
-                        toast({
-                          title: "Task Updated",
-                          variant: "default",
-                          className: "bg-green-400 text-black",
-                          duration: 2000,
-                        });
+                        await changeTaskStatus.mutateAsync({ taskId: task.id, status: value as TaskStatus });
+
                       }}
                     >
                       <SelectTrigger className="bg-background">
@@ -182,34 +196,15 @@ const Tasklist = () => {
                   </TableCell>
                   <TableCell className="text-nowrap">
 
-                    {/* Assignee Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        {task.assignees.length === 0 ? (
-                          <Badge variant="outline">No Assignee</Badge>
-                        ) : task.assignees.length > 1 ? (
-                          <>
-                            <Badge variant="outline">{task.assignees[0]?.name}</Badge>
-                            <Badge variant="outline">{`${task.assignees.length - 1} more...`}</Badge>
-                          </>
-                        ) : (
-                          <Badge variant="outline">{task.assignees[0]?.name}</Badge>
-                        )}
-
-
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Assignees</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {task.assignees.map((assignee) => (
-                          <DropdownMenuItem>
-                            {assignee.name ?? "Unknown"}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-
+                    <div className="space-x-1">
+                      {task.assignees.length === 0 ? (
+                        <Badge variant="outline">No Assignee</Badge>
+                      ) : (
+                        task.assignees.map((assignee) => (
+                          <Badge variant="outline" key={assignee.id}>{assignee.name}</Badge>
+                        ))
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <EditDeleteMenu task={task} />
@@ -220,7 +215,7 @@ const Tasklist = () => {
             <TableFooter>
               <TableRow>
                 <TableCell className="text-left text-sm" colSpan={6}>
-                  Total Tasks: {sortedTasks.length}
+                  Total Tasks: {tasks.length}
                 </TableCell>
               </TableRow>
             </TableFooter>

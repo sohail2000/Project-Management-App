@@ -3,48 +3,52 @@
 
 import { Button } from "./ui/button";
 import { useToast } from "~/hooks/use-toast";
-// import { useModalStore } from "@/store/modalStore";
-// import { useTaskStore } from "@/store/taskStore";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
+import { useModalStore } from "~/store/modalStore";
+import { api } from "~/utils/api";
 
 const DeleteModal = () => {
 
   const { toast } = useToast();
-  // const {setTaskToDelete,taskToDelete,deleteTask} = useTaskStore();
-  // const {setIsDeleteModalOpen,isDeleteModalOpen,} = useModalStore();
+  const { taskToDelete, isDeleteModalOpen, setTaskToDelete, setIsDeleteModalOpen } = useModalStore();
+  const utils = api.useUtils();
 
-  const handleCloseDeleteModal = () => {
-    // setTaskToDelete("");
-    // setIsDeleteModalOpen(false);
+  const handleDeleteModalClose = () => {
+    setTaskToDelete(null);
+    setIsDeleteModalOpen(false);
   };
 
-  const handleDeleteTask = async () => {
-    // if (taskToDelete) {
-    //   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/deletetask`, {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({ _id: taskToDelete }),
-    //   });
-    //   const data = await res.json();
+  const deleteTask = api.task.deleteTask.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Task deleted successfully",
+        variant: "destructive",
+        className: "bg-green-400 text-black",
+        duration: 4000,
+      });
+      utils.task.getAllTask.invalidate();
+      handleDeleteModalClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting task",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
+    },
+  });
 
-    //   deleteTask(taskToDelete);
-    //   toast({
-    //     title: "Task Deleted",
-    //     variant: "destructive",
-    //     duration: 2000,
-    //   })
-    //   setTaskToDelete("");
-    //   setIsDeleteModalOpen(false);
-    // }
+  const handleDeleteTask = async () => {
+    if (taskToDelete) {
+      await deleteTask.mutateAsync({ taskId: taskToDelete.id })
+    }
   };
 
   return (
     <Dialog
-      open={false}
-      //  open={isDeleteModalOpen} 
-      onOpenChange={handleCloseDeleteModal}>
+      open={isDeleteModalOpen}
+      onOpenChange={handleDeleteModalClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm Deletion</DialogTitle>
@@ -55,7 +59,7 @@ const DeleteModal = () => {
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline"
-          //  onClick={() => setIsDeleteModalOpen(false)}
+            onClick={() => setIsDeleteModalOpen(false)}
           >
             Cancel
           </Button>
@@ -69,3 +73,4 @@ const DeleteModal = () => {
 };
 
 export default DeleteModal;
+

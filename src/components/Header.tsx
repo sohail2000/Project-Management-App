@@ -7,8 +7,8 @@ import { useDashboardStore } from "~/store/dashboardStore"
 
 const Header = () => {
 
-  const toggleAddModal = useModalStore().toggleAddModal
-  const {boardView} = useDashboardStore()
+  const openAddModal = useModalStore().setIsAddModalOpen;
+  const boardView = useDashboardStore().boardView
 
   return (
 
@@ -17,7 +17,7 @@ const Header = () => {
         {boardView === 'list' ? 'List View' : 'Kanban Board View'}
       </h2>
       <Button size={`sm`}
-        onClick={toggleAddModal}
+        onClick={()=>openAddModal(true)}
       >
         <Plus className="mr-2 h-4 w-4" /> Add Task
       </Button>

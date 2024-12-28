@@ -1,20 +1,22 @@
 "use client"
 
 import React from "react";
-// import {Task} from "~/types/types"
 import { Button } from "./ui/button";
 import { MoreVertical } from "lucide-react";
-// import { useTaskStore } from "@/store/taskStore";
-// import { useModalStore } from "@/store/modalStore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Task } from "@prisma/client";
+// import { Task } from "@prisma/client";
+import { useModalStore } from "~/store/modalStore";
+import { ExtentedTask } from "~/types/types";
 
-const EditDeleteMenu = ({task}:{task:Task}) => {
+interface EditDeleteMenuProp {
+  task: ExtentedTask
+}
 
-    // const { setTaskToDelete, setNewTask } = useTaskStore();
-    // const {  setIsDeleteModalOpen, setIsAddModalOpen } = useModalStore();
-    
-return (
+const EditDeleteMenu = ({ task }: EditDeleteMenuProp) => {
+
+  const { setIsAddModalOpen, setIsDeleteModalOpen, setTaskToEdit, setTaskToDelete } = useModalStore();
+
+  return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
@@ -24,16 +26,17 @@ return (
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           onClick={() => {
-            // setNewTask(task);
-            // setIsAddModalOpen(true);
+            setTaskToEdit(task);
+            setIsAddModalOpen(true);
+
           }}
         >
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
-            // setTaskToDelete(task._id);
-            // setIsDeleteModalOpen(true);
+            setTaskToDelete(task);
+            setIsDeleteModalOpen(true);
           }}
         >
           Delete

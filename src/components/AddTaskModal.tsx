@@ -9,6 +9,7 @@ import { Textarea } from "./ui/textarea";
 import { useToast } from "~/hooks/use-toast";
 import { useModalStore } from "~/store/modalStore";
 import { Task } from "@prisma/client";
+import SearchBox from "./SearchBox";
 
 import {
   Form,
@@ -34,34 +35,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+
 import { api } from "~/utils/api";
+import { useEffect, useState } from "react";
+import { CUser } from "~/types/types";
+import { AddTask, addTaskSchema } from "~/schemas/schemas";
+import { title } from "process";
+import { format } from "path";
+import { formatDate } from "date-fns";
 
-const addTaskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  status: z.enum(["TODO", "INPROGRESS", "COMPLETED"]),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
-  dueDate: z.string().optional(),
-  assigneeIds: z.array(z.string()).default([])
-});
 
-type AddTask = z.infer<typeof addTaskSchema>;
 
-const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
-  const { isAddModalOpen, toggleAddModal } = useModalStore();
+
+
+const AddTaskModal = () => {
+  const { isAddModalOpen, setIsAddModalOpen: openAddModal, taskToEdit, setTaskToEdit } = useModalStore();
   const { toast } = useToast();
   const utils = api.useUtils();
 
-  // Initialize the createTask mutation
+  const [selectedAssignees, setSelectedAssignees] = useState<CUser[]>([]);
+
   const createTask = api.task.createTask.useMutation({
     onSuccess: () => {
       toast({
-        title: "Task Added Successfully",
+        title: "Task added successfully",
         variant: "default",
         className: "bg-green-400 text-black",
         duration: 2000,
       });
-      // Invalidate the tasks query to refresh the list
       utils.task.getAllTask.invalidate();
       handleAddModalClose();
     },
@@ -70,7 +71,28 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
         title: "Error adding task",
         description: error.message,
         variant: "destructive",
+        duration: 4000,
+      });
+    },
+  });
+
+  const updateTask = api.task.updateTask.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Task updated successfully",
+        variant: "default",
+        className: "bg-green-400 text-black",
         duration: 2000,
+      });
+      utils.task.getAllTask.invalidate();
+      handleAddModalClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating task",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
       });
     },
   });
@@ -78,32 +100,62 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
   const form = useForm<AddTask>({
     resolver: zodResolver(addTaskSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      status: "TODO",
-      priority: "MEDIUM",
-      dueDate: "",
-      assigneeIds: [] // Added missing field
+      title: taskToEdit?.title ?? "",
+      description: taskToEdit?.description ?? "",
+      status: taskToEdit?.status ?? "TODO",
+      priority: taskToEdit?.priority ?? "MEDIUM",
+      dueDate: taskToEdit?.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : "",
+      assigneeIds: taskToEdit?.assignees?.map(a => a.id) ?? [],
     },
   });
 
+  useEffect(() => {
+    if (taskToEdit) {
+      setSelectedAssignees(taskToEdit.assignees);
+      form.reset({
+        title: taskToEdit.title,
+        description: taskToEdit.description ?? "",
+        status: taskToEdit.status,
+        priority: taskToEdit.priority,
+        dueDate: taskToEdit.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : "",
+        assigneeIds: taskToEdit.assignees.map(a => a.id),
+      });
+    }
+  }, [taskToEdit, form]);
+
   const handleAddModalClose = () => {
     form.reset();
-    toggleAddModal();
+    openAddModal(false);
+    setSelectedAssignees([]);
   };
 
   const onSubmit: SubmitHandler<AddTask> = async (values) => {
     try {
+      if (taskToEdit) {
+        const updatedDueDate = values.dueDate ? new Date(values.dueDate) : null;
+        const updatedAssigneeIds = selectedAssignees.map(u => u.id).sort();
+        const updatedTask = {
+          taskId: taskToEdit.id,
+          ...(values.title !== taskToEdit.title && { title: values.title }),
+          ...(values.description !== taskToEdit.description && { description: values.description }),
+          ...(values.status !== taskToEdit.status && { status: values.status }),
+          ...(values.priority !== taskToEdit.priority && { priority: values.priority }),
+          // ...(values.dueDate !== (taskToEdit.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : "") && { 
+          //   dueDate: values.dueDate ? new Date(values.dueDate) : null 
+          // }),
+          ...(updatedDueDate && updatedDueDate !== taskToEdit.dueDate && { dueDate: updatedDueDate }),
+          ...(JSON.stringify(updatedAssigneeIds) !== JSON.stringify(taskToEdit.assignees.map(u => u.id).sort()) && { assigneeIds: updatedAssigneeIds })
+        };
+
+        await updateTask.mutateAsync(updatedTask);
+        return;
+      }
       await createTask.mutateAsync({
-        title: values.title,
-        description: values.description,
-        status: values.status,
-        priority: values.priority,
+        ...values,
         dueDate: values.dueDate ? new Date(values.dueDate) : null,
-        assigneeIds: values.assigneeIds
+        assigneeIds: selectedAssignees.map((user) => user.id),
       });
     } catch (error) {
-      // Error handling is managed by the mutation's onError callback
       console.error("Error submitting form:", error);
     }
   };
@@ -112,10 +164,11 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
     <Dialog open={isAddModalOpen} onOpenChange={handleAddModalClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle> {taskToEdit ? 'Edit Task' : 'Add New Task'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Title Field */}
             <FormField
               control={form.control}
               name="title"
@@ -123,13 +176,14 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input  {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Description Field */}
             <FormField
               control={form.control}
               name="description"
@@ -144,6 +198,7 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
               )}
             />
 
+            {/* Status Field */}
             <FormField
               control={form.control}
               name="status"
@@ -167,6 +222,7 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
               )}
             />
 
+            {/* Priority Field */}
             <FormField
               control={form.control}
               name="priority"
@@ -190,6 +246,7 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
               )}
             />
 
+            {/* Due Date Field */}
             <FormField
               control={form.control}
               name="dueDate"
@@ -204,11 +261,29 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
               )}
             />
 
+            {/* Assign Users */}
+            <FormField
+              control={form.control}
+              name="assigneeIds"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Assign Users</FormLabel>
+                  <FormControl>
+                    <SearchBox
+                      onSelect={setSelectedAssignees}
+                      selectedUsers={selectedAssignees}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Submit Button */}
             <DialogFooter>
-              {/* <Button type="submit">Add Task</Button> */}
-              <Button 
+              <Button
                 type="submit"
-                disabled={createTask.isLoading || !form.formState.isValid || form.formState.isSubmitting}
+                disabled={createTask.isLoading || form.formState.isSubmitting}
                 className="w-full sm:w-auto"
               >
                 {createTask.isLoading ? (
@@ -217,7 +292,7 @@ const AddTaskModal = ({ task }: { task: Task | null | undefined }) => {
                     Adding...
                   </span>
                 ) : (
-                  "Add Task"
+                  taskToEdit? "Update Task" : "Add Task"
                 )}
               </Button>
             </DialogFooter>

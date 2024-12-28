@@ -17,17 +17,29 @@ const Sidebar = () => {
   // const { setTasks } = useTaskStore();
   const { toast } = useToast();
 
-
-  const handleLogout = async () => {
-    // localStorage.removeItem("user");
-    // await signOut();
+  const handleLogIn = async () => {
     await signIn();
+    
     toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-      variant: "destructive",
+      title: "Logged In",
+      description: "You have been logged In successfully",
+      variant: "default",
       duration: 2000,
     });
+  };
+
+  const handleLogout = async () => {
+    await signOut({
+      redirect: true,
+      callbackUrl: "/signin"
+    });
+    
+    // toast({
+    //   title: "Logged out",
+    //   description: "You have been logged out successfully",
+    //   variant: "destructive",
+    //   duration: 2000,
+    // });
     // setUser(null);
     // setTasks([]);
   };
@@ -127,6 +139,14 @@ const Sidebar = () => {
             </Button>
           </nav>
           <div className="p-4">
+          <Button
+              onClick={handleLogIn}
+              variant={"destructive"}
+              className=" w-full"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              LogIn
+            </Button>
             <Button
               onClick={handleLogout}
               variant={"destructive"}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import AddTaskModal from "~/components/AddTaskModal";
 import { DashboardComponent } from "~/components/Dashboard";
 import DeleteModal from "~/components/DeleteModal";
+import SearchBox from "~/components/SearchBox";
 
 import { api } from "~/utils/api";
 
@@ -13,6 +14,8 @@ export default function Home() {
   if (!sessionData) {
     console.log("Please Sign in first")
   }
+
+  console.log("Session data", sessionData);
   return (
     <>
       <Head>
@@ -21,10 +24,8 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <>
-        {/* <div>{sessionData && sessionData.user.name}</div> */}
-        <DashboardComponent />
-        <AddTaskModal />
-        <DeleteModal />
+        <div>{sessionData && sessionData.user.name}</div>
+        
       </>
     </>
   );

@@ -1,5 +1,10 @@
-import { z } from "zod";
-// import { addTaskSchema } from "~/schemas/addTaskSchema";
+import {
+  changeTaskStatusSchema,
+  createTaskSchema,
+  deleteTaskInputSchema,
+  getAllTaskInputSchema,
+  updateTaskSchema
+} from "~/schemas/schemas";
 
 import {
   createTRPCRouter,
@@ -8,112 +13,38 @@ import {
 } from "~/server/api/trpc";
 
 export const taskRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
-
-  // create: protectedProcedure
-  //   .input(z.object({ name: z.string().min(1) }))
-  //   .mutation(async ({ ctx, input }) => {
-  //     // simulate a slow db call
-  //     await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  //     return ctx.db.post.create({
-  //       data: {
-  //         name: input.name,
-  //         createdBy: { connect: { id: ctx.session.user.id } },
-  //       },
-  //     });
-  //   }),
-
-  // getLatest: protectedProcedure.query(({ ctx }) => {
-  //   return ctx.db.post.findFirst({
-  //     orderBy: { createdAt: "desc" },
-  //     where: { createdBy: { id: ctx.session.user.id } },
-  //   });
-  // }),
-
-  getSecretMessage: protectedProcedure.query(() => {
-    return "you can now see this secret message!";
-  }),
-
-  // tasks related to users only -
-  // getAllTask: protectedProcedure.query(async ({ ctx }) => {
-  //   return ctx.db.task.findMany({
-  //     where: {
-  //       OR: [
-  //         // Get tasks where user is an assignee
-  //         { assignees: { some: { id: ctx.session.user.id } } },
-  //         // Get tasks created by the user
-  //         { createdById: ctx.session.user.id }
-  //       ]
-  //     },
-  //     include: {
-  //       assignees: {
-  //         select: {
-  //           id: true,
-  //           name: true,
-  //           email: true,
-  //           image: true
-  //         }
-  //       },
-  //       createdBy: {
-  //         select: {
-  //           id: true,
-  //           name: true,
-  //           email: true,
-  //           image: true
-  //         }
-  //       }
-  //     },
-  //     orderBy: {
-  //       deadline: 'asc'
-  //     }
-  //   });
-  // })
-
-  // get All tasks 
   getAllTask: protectedProcedure
-    .query(async ({ ctx }) => {
-      return ctx.db.task.findMany(
-        {
+    .input(getAllTaskInputSchema)
+    .query(async ({ ctx, input }) => {
+      const { status, priority, sortBy, sortOrder } = input;
+
+      const whereClause: any = {};
+      if (status !== "ALL") whereClause.status = status;
+      if (priority !== "ALL") whereClause.priority = priority;
+
+      const orderByClause =
+        sortBy === "none"
+          ? undefined
+          : {
+            [sortBy]: sortOrder.toLowerCase(),
+          };
+
+      return ctx.db.task.findMany({
+        where: whereClause,
+        orderBy: orderByClause,
         include: {
           assignees: {
-            select: {
-              id: true,
-              name: true,
-              // image: true,
-            }
+            select: { id: true, name: true },
           },
           createdBy: {
-            select: {
-              id: true,
-              name: true,
-              // image: true,
-            }
-          }
+            select: { id: true, name: true },
+          },
         },
-        orderBy: {
-          dueDate: 'asc'
-        }
-      }
-    );
+      });
     }),
+
   createTask: protectedProcedure
-    .input(
-      z.object({
-        title: z.string().min(1, "Title is required"),
-        description: z.string().min(1, "Title is required"),
-        status: z.enum(["TODO", "INPROGRESS", "COMPLETED"]).default("TODO"),
-        priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
-        dueDate: z.date().nullable().default(null),
-        assigneeIds: z.array(z.string()).default([])
-      })
-    )
+    .input(createTaskSchema)
     .mutation(async ({ ctx, input }) => {
       return ctx.db.task.create({
         data: {
@@ -129,22 +60,58 @@ export const taskRouter = createTRPCRouter({
             connect: { id: ctx.session.user.id }
           }
         },
-        // include: {
-        //   assignees: {
-        //     select: {
-        //       id: true,
-        //       name: true,
-        //       image: true,
-        //     }
-        //   },
-        //   createdBy: {
-        //     select: {
-        //       id: true,
-        //       name: true,
-        //       image: true,
-        //     }
-        //   }
-        // }
       });
     }),
+
+  changeTaskStatus: protectedProcedure
+    .input(changeTaskStatusSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.task.update({
+        where: { id: input.taskId },
+        data: { status: input.status },
+      });
+    }),
+
+  updateTask: protectedProcedure
+    .input(updateTaskSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.task.update({
+        where: {
+          id: input.taskId,
+          createdById: ctx.session.user.id
+        },
+        data: {
+          ...(input.title && { title: input.title }),
+          ...(input.description && { description: input.description }),
+          ...(input.status && { status: input.status }),
+          ...(input.priority && { priority: input.priority }),
+          ...(input.dueDate && { dueDate: input.dueDate }),
+          ...(input.assigneeIds && input.assigneeIds.length > 0 && {
+            assignees: {
+              set: [],
+              connect: input.assigneeIds.map(id => ({ id }))
+            }
+          })
+        }
+      });
+    }),
+
+  deleteTask: protectedProcedure
+    .input(deleteTaskInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Check if the task belongs to the user
+      const task = await ctx.db.task.findUnique({
+        where: { id: input.taskId },
+        select: { createdById: true }
+      });
+
+      if (!task || task.createdById !== ctx.session.user.id) {
+        throw new Error("Unauthorized or task not found.");
+      }
+
+      // Delete the task
+      return ctx.db.task.delete({
+        where: { id: input.taskId }
+      });
+    })
 });
