@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import { useToast } from "~/hooks/use-toast";
 import { signOut, signIn } from "next-auth/react";
-// import { useTaskStore } from "@/store/taskStore";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { useDashboardStore } from "~/store/dashboardStore";
 import { LayoutGrid, List, LogOut, Moon, Sun } from "lucide-react";
@@ -120,7 +119,7 @@ const Sidebar = () => {
               )}
             </Button>
           </div>
-          <nav className={`flex-1 space-y-2 px-2 `}>
+          <nav className={`flex-1 space-y-2 px-2  bg-red-600`}>
             <Button
               variant={boardView == "list" ? "default" : "link"}
               className={`w-full gap-2 justify-start`}
@@ -138,6 +137,7 @@ const Sidebar = () => {
               Board View
             </Button>
           </nav>
+
           <div className="p-4">
           <Button
               onClick={handleLogIn}

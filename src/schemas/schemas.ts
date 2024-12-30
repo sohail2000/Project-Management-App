@@ -2,6 +2,7 @@ import * as z from "zod";
 
 //getAllTaskInputSchema
 export const getAllTaskInputSchema = z.object({
+    projectId: z.string().optional(),
     status: z.enum(["TODO", "INPROGRESS", "COMPLETED", "ALL"]).default("ALL"),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "ALL"]).default("ALL"),
     sortBy: z.enum(["title", "priority", "dueDate", "none"]).default("none"),
@@ -13,6 +14,7 @@ export type getAllTaskInputType = z.infer<typeof getAllTaskInputSchema>;
 
 //createTaskSchema
 export const createTaskSchema = z.object({
+    projectId: z.string(),
     title: z.string().min(1, "Title is required").max(50, "Title must be 50 characters or less"),
     description: z.string().min(1, "Description is required"),
     status: z.enum(["TODO", "INPROGRESS", "COMPLETED"]).default("TODO"),
@@ -34,6 +36,7 @@ export const updateTaskSchema = z.object({
 
 //changeTaskStatusSchema
 export const changeTaskStatusSchema = z.object({
+    // projectId: z.string(),
     taskId: z.string().min(1, "Task ID is required"),
     status: z.enum(["TODO", "INPROGRESS", "COMPLETED"]),
 })
@@ -56,3 +59,29 @@ export const deleteTaskInputSchema = z.object({
     taskId: z.string()
 })
 
+//searchByNameInputSchema
+export const searchByNameInputSchema = z.object({
+    searchTerm: z.string(),
+    projectId: z.string(),
+    limit: z.number().min(1).max(20).optional().default(10),
+})
+
+//createProjectInputSchema
+export const createProjectInputSchema = z.object({
+    name: z.string().min(1, "Project name is required"),
+    description: z.string().optional(),
+    members: z.array(z.string()).optional(),
+});
+
+//updateProjectInputSchema
+export const updateProjectInputSchema = z.object({
+    projectId: z.string().min(1, "Project ID is required"),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    members: z.array(z.string()).optional(),
+});
+
+//updateUserInputSchema
+export const updateUserInputSchema = z.object({
+    name: z.string(),
+  })

@@ -14,7 +14,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { signIn } from 'next-auth/react';
-// import { useToast } from '~/hooks/use-toast';
 
 const FormSchema = z.object({
   username: z.string().min(1, 'Username is required').min(3, 'Username must be atleast 3 characters'),
@@ -25,8 +24,6 @@ const FormSchema = z.object({
 });
 
 const SignInForm = () => {
-  // const { toast } = useToast();
-
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -40,12 +37,19 @@ const SignInForm = () => {
   const onSubmit = async (values: z.infer<typeof FormSchema>) => {
     try {
 
-      const signInResponse = await signIn('credentials', {
+      await signIn('credentials', {
         username: values.username,
         password: values.password,
         redirect: true,
-        callbackUrl: '/home',
+        callbackUrl: '/project',
       });
+
+      // const signInResponse = await signIn('credentials', {
+      //   username: values.username,
+      //   password: values.password,
+      //   redirect: true,
+      //   callbackUrl: '/project',
+      // });
 
       // if (signInResponse?.ok) {
       //   // window.location.href = '/home';

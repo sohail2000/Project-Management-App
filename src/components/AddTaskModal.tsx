@@ -1,14 +1,13 @@
 "use client";
 
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { useToast } from "~/hooks/use-toast";
 import { useModalStore } from "~/store/modalStore";
-import { Task } from "@prisma/client";
 import SearchBox from "./SearchBox";
 
 import {
@@ -38,32 +37,30 @@ import {
 
 import { api } from "~/utils/api";
 import { useEffect, useState } from "react";
-import { CUser } from "~/types/types";
-import { AddTask, addTaskSchema } from "~/schemas/schemas";
-import { title } from "process";
-import { format } from "path";
-import { formatDate } from "date-fns";
-
-
-
-
+import type { CUser } from "~/types/types";
+import { useRouter } from "next/router";
+import { addTaskSchema, type AddTask } from "~/schemas/schemas";
 
 const AddTaskModal = () => {
-  const { isAddModalOpen, setIsAddModalOpen: openAddModal, taskToEdit, setTaskToEdit } = useModalStore();
+  const router = useRouter();
+  const { id } = router.query;
+  const projectId = Array.isArray(id) ? id[0] : id;
+
+  const { isAddModalOpen, setIsAddModalOpen: openAddModal, taskToEdit } = useModalStore();
   const { toast } = useToast();
   const utils = api.useUtils();
 
   const [selectedAssignees, setSelectedAssignees] = useState<CUser[]>([]);
 
   const createTask = api.task.createTask.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Task added successfully",
         variant: "default",
         className: "bg-green-400 text-black",
         duration: 2000,
       });
-      utils.task.getAllTask.invalidate();
+      await utils.task.getAllTask.invalidate();
       handleAddModalClose();
     },
     onError: (error) => {
@@ -77,14 +74,14 @@ const AddTaskModal = () => {
   });
 
   const updateTask = api.task.updateTask.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Task updated successfully",
         variant: "default",
         className: "bg-green-400 text-black",
         duration: 2000,
       });
-      utils.task.getAllTask.invalidate();
+      await utils.task.getAllTask.invalidate();
       handleAddModalClose();
     },
     onError: (error) => {
@@ -140,9 +137,6 @@ const AddTaskModal = () => {
           ...(values.description !== taskToEdit.description && { description: values.description }),
           ...(values.status !== taskToEdit.status && { status: values.status }),
           ...(values.priority !== taskToEdit.priority && { priority: values.priority }),
-          // ...(values.dueDate !== (taskToEdit.dueDate ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : "") && { 
-          //   dueDate: values.dueDate ? new Date(values.dueDate) : null 
-          // }),
           ...(updatedDueDate && updatedDueDate !== taskToEdit.dueDate && { dueDate: updatedDueDate }),
           ...(JSON.stringify(updatedAssigneeIds) !== JSON.stringify(taskToEdit.assignees.map(u => u.id).sort()) && { assigneeIds: updatedAssigneeIds })
         };
@@ -154,11 +148,14 @@ const AddTaskModal = () => {
         ...values,
         dueDate: values.dueDate ? new Date(values.dueDate) : null,
         assigneeIds: selectedAssignees.map((user) => user.id),
+        projectId: projectId ?? ''
       });
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
+
+
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={handleAddModalClose}>
@@ -292,7 +289,7 @@ const AddTaskModal = () => {
                     Adding...
                   </span>
                 ) : (
-                  taskToEdit? "Update Task" : "Add Task"
+                  taskToEdit ? "Update Task" : "Add Task"
                 )}
               </Button>
             </DialogFooter>

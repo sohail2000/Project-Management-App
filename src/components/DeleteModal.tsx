@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Button } from "./ui/button";
 import { useToast } from "~/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -8,7 +7,6 @@ import { useModalStore } from "~/store/modalStore";
 import { api } from "~/utils/api";
 
 const DeleteModal = () => {
-
   const { toast } = useToast();
   const { taskToDelete, isDeleteModalOpen, setTaskToDelete, setIsDeleteModalOpen } = useModalStore();
   const utils = api.useUtils();
@@ -19,14 +17,14 @@ const DeleteModal = () => {
   };
 
   const deleteTask = api.task.deleteTask.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Task deleted successfully",
         variant: "destructive",
         className: "bg-green-400 text-black",
         duration: 4000,
       });
-      utils.task.getAllTask.invalidate();
+      await utils.task.getAllTask.invalidate();
       handleDeleteModalClose();
     },
     onError: (error) => {

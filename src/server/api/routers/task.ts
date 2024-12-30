@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import {
   changeTaskStatusSchema,
   createTaskSchema,
@@ -5,23 +7,20 @@ import {
   getAllTaskInputSchema,
   updateTaskSchema
 } from "~/schemas/schemas";
-
 import {
   createTRPCRouter,
   protectedProcedure,
-  publicProcedure,
 } from "~/server/api/trpc";
+import { verifyProjectAccessUsingTaskId, verifyUserAccessToProject } from "~/utils/taskRouterUtils";
 
 export const taskRouter = createTRPCRouter({
+
   getAllTask: protectedProcedure
     .input(getAllTaskInputSchema)
     .query(async ({ ctx, input }) => {
-      const { status, priority, sortBy, sortOrder } = input;
+      const { projectId, status, priority, sortBy, sortOrder } = input;
 
-      const whereClause: any = {};
-      if (status !== "ALL") whereClause.status = status;
-      if (priority !== "ALL") whereClause.priority = priority;
-
+      const whereClause: Prisma.TaskWhereInput = {};
       const orderByClause =
         sortBy === "none"
           ? undefined
@@ -29,7 +28,36 @@ export const taskRouter = createTRPCRouter({
             [sortBy]: sortOrder.toLowerCase(),
           };
 
-      return ctx.db.task.findMany({
+      // If `projectId` is provided, verify access and fetch tasks by project
+      if (projectId) {
+        const [hasAccess, reason] = await verifyUserAccessToProject(
+          projectId,
+          ctx.session.user.id,
+          ctx.db
+        );
+
+        if (!hasAccess) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: reason ?? "Access denied",
+          });
+        }
+
+        whereClause.projectId = projectId;
+      } else {
+        // Otherwise, fetch tasks assigned to or created by the user
+        whereClause.OR = [
+          { createdById: ctx.session.user.id },
+          { assignees: { some: { id: ctx.session.user.id } } },
+        ];
+      }
+
+      // Filter by `status` and `priority` if provided
+      if (status !== "ALL") whereClause.status = status;
+      if (priority !== "ALL") whereClause.priority = priority;
+
+      // Fetch tasks from the database
+      const tasks = await ctx.db.task.findMany({
         where: whereClause,
         orderBy: orderByClause,
         include: {
@@ -39,13 +67,121 @@ export const taskRouter = createTRPCRouter({
           createdBy: {
             select: { id: true, name: true },
           },
+          project: projectId
+            ? {
+              select: { id: true, name: true },
+            }
+            : undefined,
         },
       });
+
+      return tasks;
     }),
+
+  // getAllTaskByUserId: protectedProcedure
+  //   .input(getAllTaskByUserIdInputSchema)
+  //   .query(async ({ ctx, input }) => {
+  //     const { status, priority, sortBy, sortOrder } = input;
+
+  //     const whereClause: Prisma.TaskWhereInput = {
+  //       OR: [
+  //         { createdById: ctx.session.user.id },
+  //         { assignees: { some: { id: ctx.session.user.id } } },
+  //       ],
+  //     };
+
+  //     if (status !== "ALL") whereClause.status = status;
+
+  //     if (priority !== "ALL") whereClause.priority = priority;
+
+  //     const orderByClause =
+  //       sortBy === "none"
+  //         ? undefined
+  //         : {
+  //           [sortBy]: sortOrder.toLowerCase(),
+  //         };
+
+  //     return ctx.db.task.findMany({
+  //       where: whereClause,
+  //       orderBy: orderByClause,
+  //       include: {
+  //         assignees: {
+  //           select: { id: true, name: true },
+  //         },
+  //         createdBy: {
+  //           select: { id: true, name: true },
+  //         },
+  //         project: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //           },
+  //         },
+  //       },
+  //     });
+  //   }),
+
+
+  // getAllTaskByProjectId: protectedProcedure
+  //   .input(getAllTaskByProjectIdInputSchema)
+  //   .query(async ({ ctx, input }) => {
+  //     const { status, priority, sortBy, sortOrder, projectId } = input;
+
+  //     const [hasAccess, reason] = await verifyUserAccessToProject(
+  //       projectId,
+  //       ctx.session.user.id,
+  //       ctx.db
+  //     );
+
+  //     if (!hasAccess) {
+  //       throw new TRPCError({
+  //         code: "FORBIDDEN",
+  //         message: reason || "Access denied",
+  //       });
+  //     }
+
+  //     const whereClause: Prisma.TaskWhereInput = { projectId };
+  //     if (status !== "ALL") whereClause.status = status;
+  //     if (priority !== "ALL") whereClause.priority = priority;
+
+  //     const orderByClause =
+  //       sortBy === "none"
+  //         ? undefined
+  //         : {
+  //           [sortBy]: sortOrder.toLowerCase(),
+  //         };
+
+  //     return ctx.db.task.findMany({
+  //       where: whereClause,
+  //       orderBy: orderByClause,
+  //       include: {
+  //         assignees: {
+  //           select: { id: true, name: true },
+  //         },
+  //         createdBy: {
+  //           select: { id: true, name: true },
+  //         },
+  //       },
+  //     });
+  //   }),
 
   createTask: protectedProcedure
     .input(createTaskSchema)
     .mutation(async ({ ctx, input }) => {
+
+      const [hasAccess, reason] = await verifyUserAccessToProject(
+        input.projectId,
+        ctx.session.user.id,
+        ctx.db
+      );
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: reason ?? "Access denied",
+        });
+      }
+
       return ctx.db.task.create({
         data: {
           title: input.title,
@@ -53,6 +189,9 @@ export const taskRouter = createTRPCRouter({
           status: input.status,
           priority: input.priority,
           dueDate: input.dueDate,
+          project: {
+            connect: { id: input.projectId }
+          },
           assignees: {
             connect: input.assigneeIds.map(id => ({ id }))
           },
@@ -60,21 +199,58 @@ export const taskRouter = createTRPCRouter({
             connect: { id: ctx.session.user.id }
           }
         },
+        include: {
+          project: true,
+          assignees: true,
+          createdBy: true
+        }
       });
     }),
 
   changeTaskStatus: protectedProcedure
     .input(changeTaskStatusSchema)
     .mutation(async ({ ctx, input }) => {
+      const [hasAccess, reason] = await verifyProjectAccessUsingTaskId(
+        input.taskId,
+        ctx.session.user.id,
+        ctx.db
+      );
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: reason ?? "Access denied",
+        });
+      }
+
       return ctx.db.task.update({
         where: { id: input.taskId },
         data: { status: input.status },
+        include: {
+          project: true,
+          assignees: true,
+          createdBy: true
+        }
       });
     }),
 
   updateTask: protectedProcedure
     .input(updateTaskSchema)
     .mutation(async ({ ctx, input }) => {
+
+      const [hasAccess, reason] = await verifyProjectAccessUsingTaskId(
+        input.taskId,
+        ctx.session.user.id,
+        ctx.db
+      );
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: reason ?? "Access denied",
+        });
+      }
+
       return ctx.db.task.update({
         where: {
           id: input.taskId,
@@ -99,17 +275,19 @@ export const taskRouter = createTRPCRouter({
   deleteTask: protectedProcedure
     .input(deleteTaskInputSchema)
     .mutation(async ({ ctx, input }) => {
-      // Check if the task belongs to the user
-      const task = await ctx.db.task.findUnique({
-        where: { id: input.taskId },
-        select: { createdById: true }
-      });
+      const [hasAccess, reason] = await verifyProjectAccessUsingTaskId(
+        input.taskId,
+        ctx.session.user.id,
+        ctx.db
+      );
 
-      if (!task || task.createdById !== ctx.session.user.id) {
-        throw new Error("Unauthorized or task not found.");
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: reason ?? "Access denied",
+        });
       }
 
-      // Delete the task
       return ctx.db.task.delete({
         where: { id: input.taskId }
       });

@@ -6,14 +6,20 @@ import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { api } from "~/utils/api";
-import { TaskStatus } from "@prisma/client";
+import type { TaskStatus } from "@prisma/client";
 import { Badge } from "~/components/ui/badge"
-import { getAllTaskInputType } from "~/schemas/schemas";
+import type { getAllTaskInputType } from "~/schemas/schemas";
 import LoadingTask from "./LoadingTask";
+import { useRouter } from "next/router";
 
 
 
 const Tasklist = () => {
+  const router = useRouter();
+  const { id } = router.query;
+  const projectId = Array.isArray(id) ? id[0] : id;
+  console.log("project Id from TaskList", projectId);
+
   const { toast } = useToast();
   const utils = api.useUtils();
 
@@ -28,17 +34,17 @@ const Tasklist = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const { data: tasks, isLoading: taskLoading, error: taskError } = api.task.getAllTask.useQuery(filters);
+  const { data: tasks, isLoading: taskLoading, error: taskError } = api.task.getAllTask.useQuery({ projectId, ...filters });
 
   const changeTaskStatus = api.task.changeTaskStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Task status updated successfully",
         variant: "default",
         className: "bg-green-400 text-black",
         duration: 2000,
       });
-      utils.task.getAllTask.invalidate();
+      await utils.task.getAllTask.invalidate();
     },
     onError: (error) => {
       toast({
@@ -52,7 +58,7 @@ const Tasklist = () => {
 
   if (taskLoading) return <LoadingTask />
 
-  if (taskError) return <div>{`Error feteching tasks data. Details: ${taskError}`}</div>
+  if (taskError) return <div>{`Error feteching tasks data. Details: ${taskError.message}`}</div>
 
   return (
     <div>

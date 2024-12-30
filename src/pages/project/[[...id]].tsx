@@ -1,18 +1,15 @@
 import AddTaskModal from "~/components/AddTaskModal"
 import { DashboardComponent } from "~/components/Dashboard"
 import DeleteModal from "~/components/DeleteModal"
-// import SearchBox from "~/components/SearchBox"
 
-const Home = () => {
+const ProjectPage = () => {
     return (
-        // <div>Home</div>
         <>
-            {/* <SearchBox /> */}
             <DashboardComponent />
-            <AddTaskModal task={null} />
+            <AddTaskModal />
             <DeleteModal />
         </>
     )
 }
 
-export default Home
+export default ProjectPage

@@ -1,25 +1,26 @@
-import { TaskPriority, TaskStatus, Task, User } from "@prisma/client";
+// import type { Task } from "@prisma/client";
+import type { RouterOutputs } from "~/utils/api";
 
 export type BoardView = "list" | "kanban";
 
-// export type SortBy = "title" | "priority" | "dueDate" | "none"
-// export type PriorityFilter = TaskPriority | "ALL"
-// export type StatusFilter = TaskStatus | "ALL"
-// export type SortOrder = "ASC" | "DESC"
-
 // cleint user
-export type CUser = Omit<User, "password">
-
-export type ExtentedTask = Task & {
-    assignees: {
-        name: string;
-        id: string;
-    }[];
-    createdBy: {
-        name: string;
-        id: string;
-    };
+export type CUser = {
+    name: string;
+    id: string;
 }
 
+// export type ExtentedTask = Task & {
+//     assignees: {
+//         name: string;
+//         id: string;
+//     }[];
+//     createdBy: {
+//         name: string;
+//         id: string;
+//     };
+// }
+
+export type ProjectWithStats = RouterOutputs["project"]["getAllProjects"][0];
+export type ExtentedTask = RouterOutputs["task"]["getAllTask"][0];
 
 

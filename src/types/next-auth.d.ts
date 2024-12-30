@@ -1,6 +1,6 @@
-import NextAuth from "next-auth/next";
-import { JWT } from "next-auth/jwt"
-import { AuthUser } from "@/utils/jwtHelper";
+
+
+
 import { type DefaultSession } from 'next-auth'
 
 declare module "next-auth" {

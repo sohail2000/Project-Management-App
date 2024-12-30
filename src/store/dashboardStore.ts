@@ -1,20 +1,18 @@
-
-
 import { create } from "zustand";
-import { BoardView } from "~/types/types";
+import type { BoardView } from "~/types/types";
 
 export type State = {
   boardView: BoardView;
-//   user: User | null;
+  currProjectId: string | undefined;
 };
 
 export type Actions = {
   setBoardView: (boardView: BoardView) => void;
-//   setUser: (user: User | null) => void;
+  setCurrProjectId: (id: string | undefined) => void;
 };
 export const useDashboardStore = create<State & Actions>((set) => ({
   boardView: "list",
-  user: null,
-//   setUser: (user: User | null) => set({ user }),
+  currProjectId: undefined,
   setBoardView: (boardView: BoardView) => set({ boardView }),
+  setCurrProjectId: (id) => set({ currProjectId: id }),
 }));

@@ -1,32 +1,31 @@
-import { z } from "zod";
-
 import {
   createTRPCRouter,
   protectedProcedure,
-  publicProcedure,
 } from "~/server/api/trpc";
+import { searchByNameInputSchema, updateUserInputSchema } from "~/schemas/schemas";
 
 export const userRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
 
   searchByName: protectedProcedure
-    .input(z.object({
-      searchTerm: z.string(),
-      limit: z.number().min(1).max(20).optional().default(10),
-    }))
+    .input(searchByNameInputSchema)
     .query(async ({ ctx, input }) => {
       const users = await ctx.db.user.findMany({
         where: {
-          name: {
-            contains: input.searchTerm,
-            mode: 'insensitive',
-          },
+          AND: [
+            {
+              name: {
+                contains: input.searchTerm,
+                mode: 'insensitive',
+              }
+            },
+            {
+              projects: {
+                some: {
+                  id: input.projectId
+                }
+              }
+            }
+          ]
         },
         select: {
           id: true,
@@ -38,7 +37,21 @@ export const userRouter = createTRPCRouter({
       return users;
     }),
 
-  getSecretMessage: protectedProcedure.query(() => {
-    return "you can now see this secret message!";
-  }),
+
+  updateUser: protectedProcedure
+    .input(updateUserInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const updatedUser = await ctx.db.user.update({
+        where: { id: userId },
+        data: { name: input.name },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      return updatedUser
+    }),
 });

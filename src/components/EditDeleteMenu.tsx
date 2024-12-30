@@ -3,10 +3,14 @@
 import React from "react";
 import { Button } from "./ui/button";
 import { MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-// import { Task } from "@prisma/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "./ui/dropdown-menu";
 import { useModalStore } from "~/store/modalStore";
-import { ExtentedTask } from "~/types/types";
+import type { ExtentedTask } from "~/types/types";
 
 interface EditDeleteMenuProp {
   task: ExtentedTask

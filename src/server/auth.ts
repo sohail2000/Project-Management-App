@@ -2,20 +2,11 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { type GetServerSidePropsContext } from "next";
 import {
   getServerSession,
-  type DefaultSession,
   type NextAuthOptions,
 } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
-
-import { env } from "~/env";
 import { db } from "~/server/db";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from 'bcrypt';
-import { ToyBrick } from "lucide-react";
-// import { tokenOnWeek } from "~/utils/jwtHelper";
-// import { tokenOneDay } from "~/utils/jwtHelper";
-// import { AuthUser, jwtHelper } from "~/utils/jwtHelper";
-
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -81,7 +72,7 @@ export const authOptions: NextAuthOptions = {
           type: "password",
         },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
 
         try {
           const user = await db.user.findFirst({

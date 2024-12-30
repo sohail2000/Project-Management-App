@@ -3,7 +3,8 @@ import useDebounce from "~/hooks/useDebounce";
 import { api } from "~/utils/api";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { CUser } from "~/types/types";
+import type { CUser } from "~/types/types";
+import { useRouter } from "next/router";
 
 interface SearchBoxProps {
     onSelect: (users: CUser[]) => void;
@@ -11,12 +12,15 @@ interface SearchBoxProps {
 }
 
 export default function SearchBox({ onSelect, selectedUsers }: SearchBoxProps) {
+    const router = useRouter();
+    const { id } = router.query;
+    const projectId = Array.isArray(id) ? id[0] : id;
     const [search, setSearch] = useState<string>("");
     const debouncedSearchTerm = useDebounce(search, 200);
 
     // Fetch users
     const { data, isLoading } = api.user.searchByName.useQuery(
-        { searchTerm: debouncedSearchTerm || "" },
+        { searchTerm: debouncedSearchTerm ?? "", projectId: projectId ?? "" },
         { enabled: true }
     );
 

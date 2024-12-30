@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ExtentedTask } from "~/types/types";
+import type { ExtentedTask } from "~/types/types";
 
 export type State = {
     isDeleteModalOpen: boolean;
