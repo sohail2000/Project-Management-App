@@ -26,7 +26,6 @@ export function SelectProjectBox() {
   const router = useRouter();
   const { id } = router.query;
   const projectId = Array.isArray(id) ? id[0] : id;
-  console.log("Project ID from SelectProject", projectId);
 
   const { data: projects, isLoading, isError, error } = api.project.getAllProjects.useQuery();
 

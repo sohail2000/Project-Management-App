@@ -15,7 +15,6 @@ const Header = () => {
   const router = useRouter();
   const { id } = router.query;
   const projectId = Array.isArray(id) ? id[0] : id;
-  console.log("project Id from Header", projectId);
 
   return (
 

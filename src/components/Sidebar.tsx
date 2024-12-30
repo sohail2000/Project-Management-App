@@ -2,45 +2,22 @@
 
 import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
-import { useToast } from "~/hooks/use-toast";
-import { signOut, signIn } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { useDashboardStore } from "~/store/dashboardStore";
 import { LayoutGrid, List, LogOut, Moon, Sun } from "lucide-react";
-import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger,} from "./ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "./ui/dropdown-menu";
 
 const Sidebar = () => {
 
   const { theme, setTheme } = useTheme();
   const { setBoardView, boardView } = useDashboardStore();
-  // const { setTasks } = useTaskStore();
-  const { toast } = useToast();
-
-  const handleLogIn = async () => {
-    await signIn();
-    
-    toast({
-      title: "Logged In",
-      description: "You have been logged In successfully",
-      variant: "default",
-      duration: 2000,
-    });
-  };
 
   const handleLogout = async () => {
     await signOut({
       redirect: true,
       callbackUrl: "/signin"
     });
-    
-    // toast({
-    //   title: "Logged out",
-    //   description: "You have been logged out successfully",
-    //   variant: "destructive",
-    //   duration: 2000,
-    // });
-    // setUser(null);
-    // setTasks([]);
   };
 
   return (
@@ -119,7 +96,7 @@ const Sidebar = () => {
               )}
             </Button>
           </div>
-          <nav className={`flex-1 space-y-2 px-2  bg-red-600`}>
+          <nav className={`flex-1 space-y-2 px-2`}>
             <Button
               variant={boardView == "list" ? "default" : "link"}
               className={`w-full gap-2 justify-start`}
@@ -137,16 +114,7 @@ const Sidebar = () => {
               Board View
             </Button>
           </nav>
-
           <div className="p-4">
-          <Button
-              onClick={handleLogIn}
-              variant={"destructive"}
-              className=" w-full"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              LogIn
-            </Button>
             <Button
               onClick={handleLogout}
               variant={"destructive"}

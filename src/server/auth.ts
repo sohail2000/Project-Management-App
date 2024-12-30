@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           if (user && credentials) {
             const validPassword = await bcrypt.compare(credentials?.password, user.password);
             if (!validPassword) {
-              throw new Error('Invalid Password')
+              return null;
             }
 
             return {
@@ -92,33 +92,32 @@ export const authOptions: NextAuthOptions = {
               name: user.name,
             }
           }
-          //  else if (!user && credentials) {
-          //   const isUser = await db.user.findFirst({
-          //     where: {
-          //       name: credentials.username
-          //     }
-          //   });
+          else if (!user && credentials) {
+            const isUser = await db.user.findFirst({
+              where: {
+                name: credentials.username
+              }
+            });
 
-          //   if (!isUser) {
-          //     const hashPassword = await bcrypt.hash(credentials.password, 10);
-          //     const newUser = await db.user.create({
-          //       data: {
-          //         name: credentials.username,
-          //         password: hashPassword
-          //       }
-          //     })
+            if (!isUser) {
+              const hashPassword = await bcrypt.hash(credentials.password, 10);
+              const newUser = await db.user.create({
+                data: {
+                  name: credentials.username,
+                  password: hashPassword
+                }
+              })
 
-          //     return {
-          //       id: newUser.id,
-          //       name: newUser.name
-          //     }
-          //   }
-          // }
+              return {
+                id: newUser.id,
+                name: newUser.name
+              }
+            }
+          }
         } catch (error) {
           console.log(error)
         }
         return null;
-
       },
     })
   ],

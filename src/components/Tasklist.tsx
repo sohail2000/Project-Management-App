@@ -18,7 +18,6 @@ const Tasklist = () => {
   const router = useRouter();
   const { id } = router.query;
   const projectId = Array.isArray(id) ? id[0] : id;
-  console.log("project Id from TaskList", projectId);
 
   const { toast } = useToast();
   const utils = api.useUtils();
