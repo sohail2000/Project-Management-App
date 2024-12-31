@@ -79,6 +79,7 @@ export function SelectProjectBox() {
                   value={project.name}
                   onSelect={async () => {
                     if (selectedProject?.id === project.id) {
+                      await router.push(`/project`);
                       setSelectedProject(undefined);
                     } else {
                       setSelectedProject(project);

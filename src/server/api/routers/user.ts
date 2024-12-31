@@ -54,4 +54,88 @@ export const userRouter = createTRPCRouter({
 
       return updatedUser
     }),
+
+
+  getUserDetails: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.session.user.id;
+
+      const userDetails = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+          assignedTasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+          createdTasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+          projects: {
+            select: {
+              id: true,
+              name: true,
+              createdAt: true,
+            },
+          },
+          ownedProjects: {
+            select: {
+              id: true,
+              name: true,
+              createdAt: true,
+            },
+          }
+        },
+      });
+
+      return userDetails;
+    }),
+  getUserStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.session.user.id;
+
+      const totalAssignedTasks = await ctx.db.task.count({
+        where: {
+          assignees: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+      });
+
+      const totalCreatedTasks = await ctx.db.task.count({
+        where: {
+          createdById: userId,
+        },
+      });
+
+      const totalProjects = await ctx.db.project.count({
+        where: {
+          members: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+      });
+
+      return {
+        totalAssignedTasks,
+        totalCreatedTasks,
+        totalProjects,
+      };
+    }),
 });

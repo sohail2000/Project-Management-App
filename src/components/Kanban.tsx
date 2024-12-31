@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Badge } from "./ui/badge";
 import { Calendar } from "lucide-react";
@@ -10,8 +10,12 @@ import { api } from "~/utils/api";
 import LoadingTask from "./LoadingTask";
 import type { ExtentedTask } from "~/types/types";
 import type { TaskStatus } from "@prisma/client";
+import { useRouter } from "next/router";
 
 const Kanban = () => {
+  const router = useRouter();
+  const { id } = router.query;
+  const projectId = Array.isArray(id) ? id[0] : id;
   const { toast } = useToast();
   const utils = api.useUtils();
 
@@ -37,13 +41,20 @@ const Kanban = () => {
 
   const { data: initialTasks, isLoading: taskLoading, error: taskError } =
     api.task.getAllTask.useQuery({
+      projectId,
       status: "ALL",
       priority: "ALL",
       sortBy: "none",
       sortOrder: "ASC",
     });
 
-  const [tasks, setTasks] = useState<ExtentedTask[]>(initialTasks ?? []);
+  const [tasks, setTasks] = useState<ExtentedTask[]>([]);
+
+  useEffect(() => {
+    if (initialTasks) {
+      setTasks(initialTasks);
+    }
+  }, [initialTasks]);
 
   if (taskLoading) return <LoadingTask />;
   if (taskError)

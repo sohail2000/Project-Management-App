@@ -83,5 +83,5 @@ export const updateProjectInputSchema = z.object({
 
 //updateUserInputSchema
 export const updateUserInputSchema = z.object({
-    name: z.string(),
+    name: z.string().min(1, "Project name is required"),
   })

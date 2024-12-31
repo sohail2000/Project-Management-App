@@ -5,8 +5,9 @@ import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { useDashboardStore } from "~/store/dashboardStore";
-import { LayoutGrid, List, LogOut, Moon, Sun } from "lucide-react";
+import { LayoutGrid, List, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "./ui/dropdown-menu";
+import Link from "next/link";
 
 const Sidebar = () => {
 
@@ -114,7 +115,16 @@ const Sidebar = () => {
               Board View
             </Button>
           </nav>
-          <div className="p-4">
+          <div className="p-4 space-y-2 ">
+            <Link href="/profile" passHref>
+              <Button
+                variant={"secondary"}
+                className="w-full"
+              >
+                <UserRound className="mr-2 h-4 w-4" />
+                Profile
+              </Button>
+            </Link>
             <Button
               onClick={handleLogout}
               variant={"destructive"}

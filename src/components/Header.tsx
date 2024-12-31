@@ -9,7 +9,7 @@ import { SelectProjectBox } from "./SelectProjectBox"
 
 const Header = () => {
 
-  const openAddModal = useModalStore().setIsAddModalOpen;
+  const {setIsAddModalOpen, setIsProjectModalOpen} = useModalStore();
   const boardView = useDashboardStore().boardView
 
   const router = useRouter();
@@ -24,13 +24,23 @@ const Header = () => {
 
       </h2>
 
-      <SelectProjectBox />
+      <div className="flex justify-center items-center gap-2">
+        <SelectProjectBox />
+        <Button size={`sm`}
+        variant="outline"
+          onClick={() => {
+            return setIsProjectModalOpen(true)
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add Project
+        </Button>
 
-      {projectId && <Button size={`sm`}
-        onClick={() => openAddModal(true)}
-      >
-        <Plus className="mr-2 h-4 w-4" /> Add Task
-      </Button>}
+        {projectId && <Button size={`sm`}
+          onClick={() => setIsAddModalOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add Task
+        </Button>}
+      </div>
     </div>
 
   )

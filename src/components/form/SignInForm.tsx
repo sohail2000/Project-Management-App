@@ -35,40 +35,12 @@ const SignInForm = () => {
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof FormSchema>) => {
-    try {
-
-      await signIn('credentials', {
-        username: values.username,
-        password: values.password,
-        redirect: true,
-        callbackUrl: '/project',
-      });
-
-      // const signInResponse = await signIn('credentials', {
-      //   username: values.username,
-      //   password: values.password,
-      //   redirect: true,
-      //   callbackUrl: '/project',
-      // });
-
-      // if (signInResponse?.ok) {
-      //   // window.location.href = '/home';
-      // } else {
-      //   toast({
-      //     title: "Sign In Failed",
-      //     description: "Failed to sign in. Please check your credentials.",
-      //     variant: "destructive",
-      //     duration: 3000,
-      //   });
-      // }
-    } catch (error) {
-      // toast({
-      //   title: "Sign In Error",
-      //   description: "Something went wrong. Please try again.",
-      //   variant: "destructive",
-      //   duration: 3000,
-      // });
-    }
+    await signIn('credentials', {
+      username: values.username,
+      password: values.password,
+      redirect: true,
+      callbackUrl: '/project',
+    });
   };
 
   return (

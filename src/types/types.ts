@@ -1,4 +1,3 @@
-// import type { Task } from "@prisma/client";
 import type { RouterOutputs } from "~/utils/api";
 
 export type BoardView = "list" | "kanban";
@@ -9,18 +8,11 @@ export type CUser = {
     id: string;
 }
 
-// export type ExtentedTask = Task & {
-//     assignees: {
-//         name: string;
-//         id: string;
-//     }[];
-//     createdBy: {
-//         name: string;
-//         id: string;
-//     };
-// }
+export type ProjectWithStats = RouterOutputs["project"]["getAllProjects"][number];
+export type ExtentedTask = RouterOutputs["task"]["getAllTask"][number];
+export type ExtentedProject = RouterOutputs["project"]["getAllProjects"][number];
+export type ProjectFromUser = RouterOutputs["user"]["getUserDetails"];
 
-export type ProjectWithStats = RouterOutputs["project"]["getAllProjects"][0];
-export type ExtentedTask = RouterOutputs["task"]["getAllTask"][0];
-
+export type ProjectsType = NonNullable<ProjectFromUser>['projects'][number];
+export type TaskType = NonNullable<ProjectFromUser>['assignedTasks'][number];
 

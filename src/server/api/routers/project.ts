@@ -29,40 +29,28 @@ export const projectRouter = createTRPCRouter({
                 },
                 select: {
                     id: true,
-                    name: true
+                    name: true,
+                    description: true,
+                    owner: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
+                    members: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
                 },
-                // include: {
-                //     owner: {
-                //         select: {
-                //             id: true,
-                //             name: true
-                //         }
-                //     },
-                //     members: {
-                //         select: {
-                //             id: true,
-                //             name: true
-                //         }
-                //     },
-                //     tasks: {
-                //         select: {
-                //             id: true,
-                //             status: true
-                //         }
-                //     },
-                //     _count: {
-                //         select: {
-                //             tasks: true
-                //         }
-                //     }
-                // },
                 orderBy: {
                     updatedAt: 'desc'
                 }
             });
         }),
 
-    createPrject: protectedProcedure
+    createProject: protectedProcedure
         .input(createProjectInputSchema)
         .mutation(async ({ ctx, input }) => {
             const { name, description, members } = input;
@@ -93,10 +81,9 @@ export const projectRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const { projectId, name, description, members } = input;
 
-            // Check if the current user is the owner of the project
             const project = await ctx.db.project.findUnique({
                 where: { id: projectId },
-                // select: { ownerId: true },
+                
             });
 
             if (!project) {
