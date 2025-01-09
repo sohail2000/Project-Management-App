@@ -59,10 +59,16 @@ export const deleteTaskInputSchema = z.object({
     taskId: z.string()
 })
 
-//searchByNameInputSchema
-export const searchByNameInputSchema = z.object({
+//searchInProjectByUsernameInputSchema
+export const searchInProjectByUsernameInputSchema = z.object({
     searchTerm: z.string(),
     projectId: z.string(),
+    limit: z.number().min(1).max(20).optional().default(10),
+})
+
+//searchByUsernameInputSchema
+export const searchByUsernameInputSchema = z.object({
+    searchTerm: z.string(),
     limit: z.number().min(1).max(20).optional().default(10),
 })
 

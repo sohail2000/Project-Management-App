@@ -8,7 +8,6 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { useToast } from "~/hooks/use-toast";
 import { useModalStore } from "~/store/modalStore";
-import SearchBox from "./SearchBox";
 
 import {
   Form,
@@ -31,6 +30,7 @@ import { api } from "~/utils/api";
 import { useEffect, useState } from "react";
 import type { CUser } from "~/types/types";
 import { z } from "zod";
+import SearchProjectBox from "./SearchProjectBox";
 
 // Define the schema for project creation/update
 const projectSchema = z.object({
@@ -186,7 +186,7 @@ const AddProjectModal = () => {
                 <FormItem>
                   <FormLabel>Project Members</FormLabel>
                   <FormControl>
-                    <SearchBox
+                    <SearchProjectBox
                       onSelect={setSelectedMembers}
                       selectedUsers={selectedMembers}
                     />

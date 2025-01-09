@@ -2,12 +2,12 @@ import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
-import { searchByNameInputSchema, updateUserInputSchema } from "~/schemas/schemas";
+import { searchByUsernameInputSchema, searchInProjectByUsernameInputSchema, updateUserInputSchema } from "~/schemas/schemas";
 
 export const userRouter = createTRPCRouter({
 
-  searchByName: protectedProcedure
-    .input(searchByNameInputSchema)
+  searchInProjectByUsername: protectedProcedure
+    .input(searchInProjectByUsernameInputSchema)
     .query(async ({ ctx, input }) => {
       const users = await ctx.db.user.findMany({
         where: {
@@ -26,6 +26,26 @@ export const userRouter = createTRPCRouter({
               }
             }
           ]
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        take: input.limit,
+      });
+
+      return users;
+    }),
+
+  searchByUsername: protectedProcedure
+    .input(searchByUsernameInputSchema)
+    .query(async ({ ctx, input }) => {
+      const users = await ctx.db.user.findMany({
+        where: {
+          name: {
+            contains: input.searchTerm,
+            mode: 'insensitive',
+          }
         },
         select: {
           id: true,

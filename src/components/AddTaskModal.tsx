@@ -8,7 +8,6 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { useToast } from "~/hooks/use-toast";
 import { useModalStore } from "~/store/modalStore";
-import SearchBox from "./SearchBox";
 
 import {
   Form,
@@ -40,6 +39,7 @@ import { useEffect, useState } from "react";
 import type { CUser } from "~/types/types";
 import { useRouter } from "next/router";
 import { addTaskSchema, type AddTask } from "~/schemas/schemas";
+import SearchUserBox from "./SearchUserBox";
 
 const AddTaskModal = () => {
   const router = useRouter();
@@ -266,7 +266,7 @@ const AddTaskModal = () => {
                 <FormItem>
                   <FormLabel>Assign Users</FormLabel>
                   <FormControl>
-                    <SearchBox
+                    <SearchUserBox
                       onSelect={setSelectedAssignees}
                       selectedUsers={selectedAssignees}
                     />

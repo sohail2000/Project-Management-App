@@ -2,14 +2,16 @@
 
 import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { useDashboardStore } from "~/store/dashboardStore";
-import { LayoutGrid, List, LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { LayoutGrid, List, LogOut, Moon, Sun, UserCircle, UserRound } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "./ui/dropdown-menu";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const Sidebar = () => {
+  const { data: sessionData } = useSession();
 
   const { theme, setTheme } = useTheme();
   const { setBoardView, boardView } = useDashboardStore();
@@ -25,8 +27,15 @@ const Sidebar = () => {
     <>
       {/* MOBILE MENU  */}
       <div className="sm:hidden flex justify-between items-center p-3 shadow-md bg-background  ">
-        <h1 className="text-xl font-bold dark:text-white">Task Manager</h1>
-
+        <div className="flex flex-row justify-center items-center gap-2">
+          <Avatar className="h-8 w-8 bg-slate-200">
+            <AvatarImage src="https://res.cloudinary.com/dydstvsbh/image/upload/v1735592029/ape_avatar_dm2znv.png" />
+            <AvatarFallback>
+              <UserCircle className="h-12 w-12 text-white" />
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-xl font-bold dark:text-white">{sessionData?.user.name}</h1>
+        </div>
         <div className="flex justify-center items-center">
           <Button
             variant="ghost"
@@ -84,7 +93,16 @@ const Sidebar = () => {
       >
         <div className="flex flex-col h-full ">
           <div className="p-4 flex items-center justify-between">
-            <h1 className="text-xl font-bold dark:text-white">Task Manager</h1>
+            <div className="flex flex-row justify-center items-center gap-2 hover:cursor-pointer">
+              <Avatar className="h-8 w-8 bg-slate-200">
+                <AvatarImage src="https://res.cloudinary.com/dydstvsbh/image/upload/v1735592029/ape_avatar_dm2znv.png" />
+                <AvatarFallback>
+                  <UserCircle className="h-12 w-12 text-white" />
+                </AvatarFallback>
+              </Avatar>
+              <h1 className="text-xl font-bold dark:text-white">{sessionData?.user.name}</h1>
+            </div>
+
             <Button
               variant="ghost"
               size="icon"
@@ -116,15 +134,17 @@ const Sidebar = () => {
             </Button>
           </nav>
           <div className="p-4 space-y-2 ">
-            <Link href="/profile" passHref>
-              <Button
-                variant={"secondary"}
-                className="w-full"
-              >
+            <Button
+              variant={"secondary"}
+              className="w-full"
+              asChild
+            >
+              <Link href="/profile" >
                 <UserRound className="mr-2 h-4 w-4" />
                 Profile
-              </Button>
-            </Link>
+              </Link>
+            </Button>
+
             <Button
               onClick={handleLogout}
               variant={"destructive"}

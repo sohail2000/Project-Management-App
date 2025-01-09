@@ -6,23 +6,21 @@ import { Badge } from "./ui/badge";
 import type { CUser } from "~/types/types";
 import { useRouter } from "next/router";
 
-interface SearchBoxProps {
+interface SearchProjectBoxProps {
     onSelect: (users: CUser[]) => void;
     selectedUsers: CUser[];
 }
 
-export default function SearchBox({ onSelect, selectedUsers }: SearchBoxProps) {
-    const router = useRouter();
-    const { id } = router.query;
-    const projectId = Array.isArray(id) ? id[0] : id;
+export default function SearchProjectBox({ onSelect, selectedUsers }: SearchProjectBoxProps) {
     const [search, setSearch] = useState<string>("");
     const debouncedSearchTerm = useDebounce(search, 200);
 
     // Fetch users
-    const { data, isLoading } = api.user.searchByName.useQuery(
-        { searchTerm: debouncedSearchTerm ?? "", projectId: projectId ?? "" },
+    const { data, isLoading } = api.user.searchByUsername.useQuery(
+        { searchTerm: debouncedSearchTerm ?? "" },
         { enabled: true }
     );
+
 
     const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
         const target = event.target as HTMLElement;
